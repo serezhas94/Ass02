@@ -2,45 +2,45 @@ package com.example.sergey_kurapov_3025265_ass2
 
 import android.content.Context
 import android.graphics.*
+import android.os.Bundle
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.widget.GridView
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 
 
 class CustomView(context: Context?) : View(context) {
     // private fields of the class
     private var _context: Context? = context
     private var _attribs: AttributeSet? = null
-    private lateinit var _red: Paint
-    private lateinit var _green: Paint
-    private lateinit var _blue: Paint
-    private lateinit var _black: Paint
+
+    private val _cellRows = 10
+    private val _cellColumns = 10
+    private val _lines = Paint()
+
+
     private var _radius: Float = 0.0f
     private var _pointers: Int = 0
     private var _touch_x: HashMap<Int, Float> = HashMap<Int, Float>()
     private var _touch_y: HashMap<Int, Float> = HashMap<Int, Float>()
     private var _colour: HashMap<Int, Paint> = HashMap<Int, Paint>()
 
+
     // secondary constructor that will take in a context and attribute set
     constructor(context: Context?, attribs: AttributeSet?) : this(context) {
         _attribs = attribs
     }
 
-    // init block that will do the rest of the initialisation after the constructors have finished
-    // we will use this for all of our colours and drawing objects as they are common regardless
-    // of which constructor is used.
+
+    // init block that will do the rest of the initialisation
     init {
-        // here we will initialise all of our paint objects as we can't do it through the constructor
-        // alone
-        _red = Paint(Paint.ANTI_ALIAS_FLAG)
-        _green = Paint(Paint.ANTI_ALIAS_FLAG)
-        _blue = Paint(Paint.ANTI_ALIAS_FLAG)
-        _black = Paint(Paint.ANTI_ALIAS_FLAG)
-        _red.setColor(Color.argb(255, 255, 0, 0))
-        _green.setColor(Color.argb(255, 0, 255, 0))
-        _blue.setColor(Color.argb(255, 0, 0, 255))
-        _black.setColor(Color.argb(255, 0, 0, 0))
+
+        _lines.style = Paint.Style.FILL_AND_STROKE
+        _lines.color = Color.WHITE
     }
+
 
     // overridden draw function that will draw the canvas depending on the mode selected
     override fun onDraw(canvas: Canvas?) {
@@ -50,6 +50,28 @@ class CustomView(context: Context?) : View(context) {
         // get the width and height of the canvas which is the available drawing area we have
         var width: Int = canvas!!.width
         var height: Int = canvas!!.height
+
+        var cellWidth = width / _cellColumns
+        var cellHeight = height / _cellRows
+
+        // fill the entire canvas in black
+        canvas.drawColor(Color.BLACK)
+
+        // draw lines for rows
+        for (i in 0 until _cellRows) {
+            canvas.drawLine(
+                0.0f, (i * cellHeight).toFloat(), getWidth().toFloat(), (i * cellHeight).toFloat(),
+                _lines
+            )
+        }
+
+        // draw lines for columns
+        for (i in 0 until _cellColumns) {
+            canvas.drawLine(
+                (i * cellWidth).toFloat(), 0.0f, (i * cellWidth).toFloat(), getHeight().toFloat(),
+                _lines
+            )
+        }
 
         // set the radius of the circles to be 15% of the screen width
         _radius = width * 0.15f
@@ -137,6 +159,12 @@ class CustomView(context: Context?) : View(context) {
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         val width = measuredWidth
-        setMeasuredDimension(width, width)
+        val height = measuredHeight
+        if(width > height){
+            setMeasuredDimension(height, height)
+        }
+        else{
+            setMeasuredDimension(width, width)
+        }
     }
 }
