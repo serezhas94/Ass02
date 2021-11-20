@@ -14,8 +14,12 @@ class CustomView(context: Context?) : View(context) {
 
     private val _cellRows = 10
     private val _cellColumns = 10
+
     private val _linesPaint = Paint()
     private val _uncCellPaint = Paint()
+
+    private val _mineCellPaint = Paint()
+    private val _letterPaint = Paint()
 
     private var _pointers: Int = 0
     private var _touchPoint: Point = Point(0.0f, 0.0f)
@@ -39,9 +43,27 @@ class CustomView(context: Context?) : View(context) {
         _uncCellPaint.style = Paint.Style.FILL
         _uncCellPaint.color = Color.GRAY
 
+        _mineCellPaint.style = Paint.Style.FILL
+        _mineCellPaint.color = Color.RED
+
+        _letterPaint.style = Paint.Style.FILL
+        _letterPaint.color = Color.BLACK
+
         // initialize cells
         for (i in 0 until _cellRows * _cellColumns) {
             _cells.add(Cell())
+        }
+
+        // create 20 mines in random
+        val randomIndexes = mutableSetOf<Int>()
+        while (randomIndexes.count() < 20) {
+            var index = (0..100).random()
+            randomIndexes.add(index)
+        }
+
+        // set 20 mines in cells
+        for(i in randomIndexes) {
+            _cells[i].isMineInCell = true
         }
     }
 
@@ -106,7 +128,19 @@ class CustomView(context: Context?) : View(context) {
 
         // draw uncovered cells
         for (cell in _uncoveredCells){
-            canvas.drawRect(cell.topLeft.x,cell.topLeft.y, cell.bottomRight.x, cell.bottomRight.y , _uncCellPaint)
+            if(cell.isMineInCell){
+
+                //paint cell in red
+                canvas.drawRect(cell.topLeft.x,cell.topLeft.y, cell.bottomRight.x, cell.bottomRight.y , _mineCellPaint)
+                // draw M letter
+                _letterPaint.textSize = (cell.bottomRight.y - cell.topRight.y) / 2
+                var x = (cell.bottomLeft.x + (cell.bottomLeft.x + cell.bottomRight.x) /2) / 2
+                var y = ((cell.topRight.y + cell.bottomRight.y)/2 + cell.bottomRight.y) /2
+                canvas.drawText("M", x, y, _letterPaint )
+            }
+            else{
+                canvas.drawRect(cell.topLeft.x,cell.topLeft.y, cell.bottomRight.x, cell.bottomRight.y , _uncCellPaint)
+            }
         }
 
     }
