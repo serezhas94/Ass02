@@ -6,7 +6,6 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 
-
 class CustomView(context: Context?) : View(context) {
     // private fields of the class
     private var _context: Context? = context
@@ -27,12 +26,15 @@ class CustomView(context: Context?) : View(context) {
     private var _cells:ArrayList<Cell> = ArrayList<Cell>(100)
     private var _uncoveredCells:ArrayList<Cell> = ArrayList<Cell>(100)
 
+    private var _isMineExploded: Boolean = false
+
 
     // secondary constructor that will take in a context and attribute set
     constructor(context: Context?, attribs: AttributeSet?) : this(context) {
         _attribs = attribs
-    }
+        _context = context
 
+    }
 
     // init block that will do the rest of the initialisation
     init {
@@ -66,7 +68,6 @@ class CustomView(context: Context?) : View(context) {
             _cells[i].isMineInCell = true
         }
     }
-
 
     // overridden draw function that will draw the canvas depending on the mode selected
     override fun onDraw(canvas: Canvas?) {
@@ -119,6 +120,11 @@ class CustomView(context: Context?) : View(context) {
             // find cell which touched
             for (i in 0 until _cells.count()){
                 if(_cells[i].isPointInCell(_touchPoint!!.x, _touchPoint!!.y)){
+                    //if mine in cell
+                    if(_cells[i] .isMineInCell) {
+                        // set variable mine exploded to true
+                        _isMineExploded = true
+                    }
                     _uncoveredCells.add(_cells[i])
                     break
                 }
@@ -145,26 +151,40 @@ class CustomView(context: Context?) : View(context) {
 
     }
 
-
     // overridden function that will allow us to react to touch events on our view
     override fun onTouchEvent(event: MotionEvent?): Boolean {
 
-        // see what event we have and take appropriate action
-        if (event!!.actionMasked == MotionEvent.ACTION_DOWN
-            || event!!.actionMasked == MotionEvent.ACTION_POINTER_DOWN
-        ) {
-            // either we have a single touch (ACTION_DOWN) or an additional touch (ACTION_POINTER_DOWN) either way
-            // add a new pointer and keep track of the id of this pointer
-            val index = event.actionIndex
-            val id = event.getPointerId(index)
+        if(_isMineExploded){
+            var mainActivity = context as MainActivity
 
-            _touchPoint.x = event.x
-            _touchPoint.y = event.y
+            // reset button clicked in main activity
+            if(mainActivity.isResetMineExplorer){
 
-            // increment the number of pointers also invalidate the display and indicate this event has been handled
-            _pointers++
-            invalidate()
-            return true
+               _isMineExploded = false
+                mainActivity.isResetMineExplorer = false
+            }
+        }
+
+        // if mine not exploded  touch event, otherwise ignore it
+        if (!_isMineExploded) {
+
+            // see what event we have and take appropriate action
+            if (event!!.actionMasked == MotionEvent.ACTION_DOWN
+                || event!!.actionMasked == MotionEvent.ACTION_POINTER_DOWN
+            ) {
+                // either we have a single touch (ACTION_DOWN) or an additional touch (ACTION_POINTER_DOWN) either way
+                // add a new pointer and keep track of the id of this pointer
+                val index = event.actionIndex
+                val id = event.getPointerId(index)
+
+                _touchPoint.x = event.x
+                _touchPoint.y = event.y
+
+                // increment the number of pointers also invalidate the display and indicate this event has been handled
+                _pointers++
+                invalidate()
+                return true
+            }
         }
 
         // if we haven't handled the event then we need to pass it on to see what else could handle it
