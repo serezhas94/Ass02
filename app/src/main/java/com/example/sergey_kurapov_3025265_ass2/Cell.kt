@@ -1,10 +1,5 @@
 package com.example.sergey_kurapov_3025265_ass2
 
-import android.R.bool
-
-
-
-
 class Cell(id:Int) {
     val id:Int = id
     var topLeft = Point(0.0f, 0.0f)
@@ -17,6 +12,7 @@ class Cell(id:Int) {
 
     var numOfMinesAround = 0
 
+    // copy state of cell from other cell
     fun copyState(otherCell: Cell){
         isMineInCell = otherCell.isMineInCell
         isMarked = otherCell.isMarked
