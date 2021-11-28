@@ -12,6 +12,8 @@ class Cell {
     var bottomRight = Point(0.0f, 0.0f)
 
     var isMineInCell = false
+    var isMarked = false
+
     var numOfMinesAround = 0
 
     // check if point belongs to cell

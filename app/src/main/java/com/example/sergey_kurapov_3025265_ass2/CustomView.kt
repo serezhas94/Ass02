@@ -1,10 +1,12 @@
 package com.example.sergey_kurapov_3025265_ass2
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.widget.TextView
 
 class CustomView(context: Context?) : View(context) {
     // private fields of the class
@@ -20,20 +22,24 @@ class CustomView(context: Context?) : View(context) {
     private val _mineCellPaint = Paint()
     private val _letterPaint = Paint()
 
+    private val _markingCellPaint = Paint()
+
     private var _pointers: Int = 0
     private var _touchPoint: Point = Point(0.0f, 0.0f)
 
-    private var _cells:ArrayList<Cell> = ArrayList<Cell>(100)
-    private var _uncoveredCells:ArrayList<Cell> = ArrayList<Cell>(100)
+    private var _cells: ArrayList<Cell> = ArrayList<Cell>(100)
+    private var _uncoveredCells: ArrayList<Cell> = ArrayList<Cell>(100)
 
     private var _isMineExploded: Boolean = false
+
+    var markedMinesCount: Int = 0
+    var totalMinesCount: Int = 0
 
 
     // secondary constructor that will take in a context and attribute set
     constructor(context: Context?, attribs: AttributeSet?) : this(context) {
         _attribs = attribs
         _context = context
-
     }
 
     // init block that will do the rest of the initialisation
@@ -51,35 +57,46 @@ class CustomView(context: Context?) : View(context) {
         _letterPaint.style = Paint.Style.FILL
         _letterPaint.color = Color.BLACK
 
+        _markingCellPaint.style = Paint.Style.FILL
+        _markingCellPaint.color = Color.YELLOW
+
         // initialize cells
         for (i in 0 until _cellRows * _cellColumns) {
             _cells.add(Cell())
         }
 
+        totalMinesCount = 20
         // create 20 mines in random
         val randomIndexes = mutableSetOf<Int>()
-        while (randomIndexes.count() < 20) {
+        while (randomIndexes.count() < totalMinesCount) {
             var index = (0..100).random()
             randomIndexes.add(index)
         }
 
         // set 20 mines in cells
-        for(i in randomIndexes) {
+        for (i in randomIndexes) {
             _cells[i].isMineInCell = true
         }
+
+        markedMinesCount = 0
+
+        val mainActivity = context as MainActivity
+        mainActivity.markedMines = markedMinesCount
+        mainActivity.totalMines = totalMinesCount
     }
 
     // overridden draw function that will draw the canvas depending on the mode selected
+    @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas?) {
         // call the superclass drawing function before we start
         super.onDraw(canvas)
 
         // get the width and height of the canvas which is the available drawing area we have
-        var width: Int = canvas!!.width
-        var height: Int = canvas!!.height
+        val width: Int = canvas!!.width
+        val height: Int = canvas!!.height
 
-        var cellWidth = width / _cellColumns
-        var cellHeight = height / _cellRows
+        val cellWidth = width / _cellColumns
+        val cellHeight = height / _cellRows
 
         // fill the entire canvas in black
         canvas.drawColor(Color.BLACK)
@@ -105,47 +122,108 @@ class CustomView(context: Context?) : View(context) {
         for (i in 0 until _cellRows) {
             for (j in 0 until _cellColumns) {
 
-                _cells[count].topLeft = Point((i * cellWidth).toFloat(),(j * cellHeight).toFloat())
-                _cells[count].topRight = Point((i * cellWidth + cellWidth).toFloat(),(j * cellHeight).toFloat())
+                _cells[count].topLeft = Point((i * cellWidth).toFloat(), (j * cellHeight).toFloat())
+                _cells[count].topRight =
+                    Point((i * cellWidth + cellWidth).toFloat(), (j * cellHeight).toFloat())
 
-                _cells[count].bottomLeft = Point((i * cellWidth).toFloat(),(j * cellHeight + cellHeight).toFloat())
-                _cells[count].bottomRight = Point((i * cellWidth + cellWidth).toFloat(),(j * cellHeight + cellHeight).toFloat())
+                _cells[count].bottomLeft =
+                    Point((i * cellWidth).toFloat(), (j * cellHeight + cellHeight).toFloat())
+                _cells[count].bottomRight = Point(
+                    (i * cellWidth + cellWidth).toFloat(),
+                    (j * cellHeight + cellHeight).toFloat()
+                )
 
-                count ++
+                count++
             }
         }
 
-        if(_pointers > 0){
+        if (_pointers > 0) {
+
+            val mainActivity = context as MainActivity
 
             // find cell which touched
-            for (i in 0 until _cells.count()){
-                if(_cells[i].isPointInCell(_touchPoint!!.x, _touchPoint!!.y)){
-                    //if mine in cell
-                    if(_cells[i] .isMineInCell) {
-                        // set variable mine exploded to true
-                        _isMineExploded = true
+            for (i in 0 until _cells.count()) {
+                if (_cells[i].isPointInCell(_touchPoint.x, _touchPoint.y)) {
+
+                    // in marking mode
+                    if (mainActivity.isMarkingMode) {
+
+                        if (_cells[i].isMarked) {
+                            _cells[i].isMarked = false
+
+                            // decrease marked mines count
+                            if (_cells[i].isMineInCell) {
+                                markedMinesCount--
+                            }
+
+                            // remove from uncovered cells
+                            _uncoveredCells.remove(_cells[i])
+
+                        } else if (!_uncoveredCells.contains(_cells[i])) {
+                            _cells[i].isMarked = true
+
+                            // increase marked mines count
+                            if (_cells[i].isMineInCell) {
+                                markedMinesCount++
+                            }
+                            // add to uncovered cells
+                            _uncoveredCells.add(_cells[i])
+                        }
                     }
-                    _uncoveredCells.add(_cells[i])
+                    // in uncover mode
+                    else {
+                        if (!_cells[i].isMarked) {
+                            //if mine in cell
+                            if (_cells[i].isMineInCell) {
+
+                                // set variable mine exploded to true
+                                _isMineExploded = true
+                            }
+                            // add to uncovered cells
+                            _uncoveredCells.add(_cells[i])
+                        }
+                    }
                     break
                 }
             }
             _pointers = 0
+            mainActivity.markedMines = markedMinesCount
         }
 
         // draw uncovered cells
-        for (cell in _uncoveredCells){
-            if(cell.isMineInCell){
+        for (cell in _uncoveredCells) {
+
+            if (cell.isMarked) {
+                canvas.drawRect(
+                    cell.topLeft.x,
+                    cell.topLeft.y,
+                    cell.bottomRight.x,
+                    cell.bottomRight.y,
+                    _markingCellPaint
+                )
+            } else if (cell.isMineInCell) {
 
                 //paint cell in red
-                canvas.drawRect(cell.topLeft.x,cell.topLeft.y, cell.bottomRight.x, cell.bottomRight.y , _mineCellPaint)
+                canvas.drawRect(
+                    cell.topLeft.x,
+                    cell.topLeft.y,
+                    cell.bottomRight.x,
+                    cell.bottomRight.y,
+                    _mineCellPaint
+                )
                 // draw M letter
                 _letterPaint.textSize = (cell.bottomRight.y - cell.topRight.y) / 2
-                var x = (cell.bottomLeft.x + (cell.bottomLeft.x + cell.bottomRight.x) /2) / 2
-                var y = ((cell.topRight.y + cell.bottomRight.y)/2 + cell.bottomRight.y) /2
-                canvas.drawText("M", x, y, _letterPaint )
-            }
-            else{
-                canvas.drawRect(cell.topLeft.x,cell.topLeft.y, cell.bottomRight.x, cell.bottomRight.y , _uncCellPaint)
+                val x = (cell.bottomLeft.x + (cell.bottomLeft.x + cell.bottomRight.x) / 2) / 2
+                val y = ((cell.topRight.y + cell.bottomRight.y) / 2 + cell.bottomRight.y) / 2
+                canvas.drawText("M", x, y, _letterPaint)
+            } else {
+                canvas.drawRect(
+                    cell.topLeft.x,
+                    cell.topLeft.y,
+                    cell.bottomRight.x,
+                    cell.bottomRight.y,
+                    _uncCellPaint
+                )
             }
         }
 
@@ -154,13 +232,13 @@ class CustomView(context: Context?) : View(context) {
     // overridden function that will allow us to react to touch events on our view
     override fun onTouchEvent(event: MotionEvent?): Boolean {
 
-        if(_isMineExploded){
-            var mainActivity = context as MainActivity
+        if (_isMineExploded) {
+            val mainActivity = context as MainActivity
 
             // reset button clicked in main activity
-            if(mainActivity.isResetMineExplorer){
+            if (mainActivity.isResetMineExplorer) {
 
-               _isMineExploded = false
+                _isMineExploded = false
                 mainActivity.isResetMineExplorer = false
             }
         }
@@ -196,10 +274,9 @@ class CustomView(context: Context?) : View(context) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         val width = measuredWidth
         val height = measuredHeight
-        if(width > height){
+        if (width > height) {
             setMeasuredDimension(height, height)
-        }
-        else{
+        } else {
             setMeasuredDimension(width, width)
         }
     }

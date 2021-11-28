@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Sergey_Kurapov_3025265_Ass2</string>
-    <string name="total_number">Total number of mines:</string>
-    <string name="number_of_mines_marked">Number of mines marked:</string>
+    <string name="total_number"><b>Total number of mines:</b></string>
+    <string name="number_of_mines_marked"><b>Number of mines marked:</b></string>
     <string name="reset_button">Reset</string>
     <string name="uncover_mode_button">Uncover mode</string>
     <string name="marking_mode_button">Marking mode</string>
