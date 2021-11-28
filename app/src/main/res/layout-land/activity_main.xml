@@ -5,43 +5,49 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
+    <com.example.sergey_kurapov_3025265_ass2.CustomView
+        android:id="@+id/customViewMines"
+        android:layout_marginLeft="1dp"
+        android:layout_alignParentLeft="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
     <TextView
         android:id="@+id/txtMarkedMines"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
+        android:layout_marginLeft="3dp"
+        android:layout_toRightOf="@+id/customViewMines"
         android:text="@string/number_of_mines_marked" />
     <TextView
         android:id="@+id/txtTotalMines"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="3dp"
+        android:layout_toRightOf="@+id/customViewMines"
         android:layout_below="@+id/txtMarkedMines"
         android:text="@string/total_number" />
-
-    <com.example.sergey_kurapov_3025265_ass2.CustomView
-        android:id="@+id/customViewMines"
-        android:layout_width="match_parent"
-        android:layout_below="@+id/txtTotalMines"
-        android:layout_height="wrap_content" />
-
     <Button
         android:id="@+id/btnUncover"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/customViewMines"
+        android:layout_marginLeft="3dp"
+        android:layout_toRightOf="@+id/customViewMines"
+        android:layout_below="@+id/txtTotalMines"
         android:text="@string/uncover_mode_button" />
     <Button
         android:id="@+id/btnReEnable"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="3dp"
+        android:layout_toRightOf="@+id/customViewMines"
         android:layout_below="@+id/btnUncover"
         android:text="@string/re_enable_button" />
-
     <Button
         android:id="@+id/btnReset"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="3dp"
+        android:layout_toRightOf="@+id/customViewMines"
         android:layout_below="@+id/btnReEnable"
         android:text="@string/reset_button" />
-
 </RelativeLayout>

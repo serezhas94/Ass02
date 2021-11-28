@@ -6,12 +6,15 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import android.widget.TextView
 
-class CustomView(context: Context?) : View(context) {
+// to interact with view, at a minimum a constructor
+// that takes a Context and an AttributeSet object as parameters
+class CustomView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
+) : View(context, attrs, defStyleAttr){
     // private fields of the class
-    private var _context: Context? = context
-    private var _attribs: AttributeSet? = null
 
     private val _cellRows = 10
     private val _cellColumns = 10
@@ -27,20 +30,14 @@ class CustomView(context: Context?) : View(context) {
     private var _pointers: Int = 0
     private var _touchPoint: Point = Point(0.0f, 0.0f)
 
-    private var _cells: ArrayList<Cell> = ArrayList<Cell>(100)
-    private var _uncoveredCells: ArrayList<Cell> = ArrayList<Cell>(100)
+    var cells: ArrayList<Cell> = ArrayList(100)
+    var uncoveredCells: ArrayList<Cell> = ArrayList(100)
 
-    private var _isMineExploded: Boolean = false
+    var isMineExploded: Boolean = false
 
     var markedMinesCount: Int = 0
     var totalMinesCount: Int = 0
 
-
-    // secondary constructor that will take in a context and attribute set
-    constructor(context: Context?, attribs: AttributeSet?) : this(context) {
-        _attribs = attribs
-        _context = context
-    }
 
     // init block that will do the rest of the initialisation
     init {
@@ -60,36 +57,62 @@ class CustomView(context: Context?) : View(context) {
         _markingCellPaint.style = Paint.Style.FILL
         _markingCellPaint.color = Color.YELLOW
 
-        // initialize cells
-        for (i in 0 until _cellRows * _cellColumns) {
-            _cells.add(Cell())
-        }
-
-        totalMinesCount = 20
-        // create 20 mines in random
-        val randomIndexes = mutableSetOf<Int>()
-        while (randomIndexes.count() < totalMinesCount) {
-            var index = (0..100).random()
-            randomIndexes.add(index)
-        }
-
-        // set 20 mines in cells
-        for (i in randomIndexes) {
-            _cells[i].isMineInCell = true
-        }
-
-        markedMinesCount = 0
+        initializeData()
 
         val mainActivity = context as MainActivity
         mainActivity.markedMines = markedMinesCount
         mainActivity.totalMines = totalMinesCount
     }
 
+    private fun initializeData() {
+        markedMinesCount = 0
+        totalMinesCount = 20
+
+        // initialize cells
+        for (i in 0 until _cellRows * _cellColumns) {
+            cells.add(Cell(i))
+        }
+
+        // create mines in random
+        val randomIndexes = mutableSetOf<Int>()
+        while (randomIndexes.count() < totalMinesCount) {
+            val index = (0..99).random()
+            randomIndexes.add(index)
+        }
+
+        // set 20 mines in cells
+        for (i in randomIndexes) {
+            cells[i].isMineInCell = true
+        }
+
+        setCellNumMinesAround()
+    }
+
+
     // overridden draw function that will draw the canvas depending on the mode selected
     @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas?) {
         // call the superclass drawing function before we start
         super.onDraw(canvas)
+
+        val mainActivity = context as MainActivity
+        if(mainActivity.isResetMineExplorer){
+            mainActivity.isResetMineExplorer = false
+
+            // clear previous data
+            cells.clear()
+            uncoveredCells.clear()
+
+            //initialize data again
+            initializeData()
+
+            // reset mine exploded
+            isMineExploded = false
+
+            //reset mines count in main activity
+            mainActivity.markedMines = markedMinesCount
+            mainActivity.totalMines = totalMinesCount
+        }
 
         // get the width and height of the canvas which is the available drawing area we have
         val width: Int = canvas!!.width
@@ -122,65 +145,62 @@ class CustomView(context: Context?) : View(context) {
         for (i in 0 until _cellRows) {
             for (j in 0 until _cellColumns) {
 
-                _cells[count].topLeft = Point((i * cellWidth).toFloat(), (j * cellHeight).toFloat())
-                _cells[count].topRight =
+                cells[count].topLeft = Point((i * cellWidth).toFloat(), (j * cellHeight).toFloat())
+                cells[count].topRight =
                     Point((i * cellWidth + cellWidth).toFloat(), (j * cellHeight).toFloat())
 
-                _cells[count].bottomLeft =
+                cells[count].bottomLeft =
                     Point((i * cellWidth).toFloat(), (j * cellHeight + cellHeight).toFloat())
-                _cells[count].bottomRight = Point(
+                cells[count].bottomRight = Point(
                     (i * cellWidth + cellWidth).toFloat(),
                     (j * cellHeight + cellHeight).toFloat()
                 )
-
                 count++
             }
         }
 
         if (_pointers > 0) {
 
-            val mainActivity = context as MainActivity
-
             // find cell which touched
-            for (i in 0 until _cells.count()) {
-                if (_cells[i].isPointInCell(_touchPoint.x, _touchPoint.y)) {
+            for (i in 0 until cells.count()) {
+                if (cells[i].isPointInCell(_touchPoint.x, _touchPoint.y)) {
 
                     // in marking mode
                     if (mainActivity.isMarkingMode) {
 
-                        if (_cells[i].isMarked) {
-                            _cells[i].isMarked = false
+                        if (cells[i].isMarked) {
+                            cells[i].isMarked = false
 
                             // decrease marked mines count
-                            if (_cells[i].isMineInCell) {
+                            if (cells[i].isMineInCell) {
                                 markedMinesCount--
                             }
 
                             // remove from uncovered cells
-                            _uncoveredCells.remove(_cells[i])
+                            uncoveredCells.remove(cells[i])
 
-                        } else if (!_uncoveredCells.contains(_cells[i])) {
-                            _cells[i].isMarked = true
+                        } else if (!uncoveredCells.contains(cells[i])) {
+                            cells[i].isMarked = true
 
                             // increase marked mines count
-                            if (_cells[i].isMineInCell) {
+                            if (cells[i].isMineInCell) {
                                 markedMinesCount++
                             }
                             // add to uncovered cells
-                            _uncoveredCells.add(_cells[i])
+                            uncoveredCells.add(cells[i])
                         }
                     }
                     // in uncover mode
                     else {
-                        if (!_cells[i].isMarked) {
+                        if (!cells[i].isMarked) {
                             //if mine in cell
-                            if (_cells[i].isMineInCell) {
+                            if (cells[i].isMineInCell) {
 
                                 // set variable mine exploded to true
-                                _isMineExploded = true
+                                isMineExploded = true
                             }
                             // add to uncovered cells
-                            _uncoveredCells.add(_cells[i])
+                            uncoveredCells.add(cells[i])
                         }
                     }
                     break
@@ -189,9 +209,8 @@ class CustomView(context: Context?) : View(context) {
             _pointers = 0
             mainActivity.markedMines = markedMinesCount
         }
-
         // draw uncovered cells
-        for (cell in _uncoveredCells) {
+        for (cell in uncoveredCells) {
 
             if (cell.isMarked) {
                 canvas.drawRect(
@@ -224,37 +243,40 @@ class CustomView(context: Context?) : View(context) {
                     cell.bottomRight.y,
                     _uncCellPaint
                 )
+                if(cell.numOfMinesAround > 0){
+                    // draw number
+                    _letterPaint.textSize = (cell.bottomRight.y - cell.topRight.y) / 2
+                    val x = (cell.bottomLeft.x + (cell.bottomLeft.x + cell.bottomRight.x) / 2) / 2
+                    val y = ((cell.topRight.y + cell.bottomRight.y) / 2 + cell.bottomRight.y) / 2
+                    canvas.drawText(cell.numOfMinesAround.toString(), x, y, _letterPaint)
+                }
             }
         }
-
     }
 
     // overridden function that will allow us to react to touch events on our view
     override fun onTouchEvent(event: MotionEvent?): Boolean {
 
-        if (_isMineExploded) {
+        if (isMineExploded) {
             val mainActivity = context as MainActivity
 
             // reset button clicked in main activity
-            if (mainActivity.isResetMineExplorer) {
+            if (mainActivity.isReEnable) {
 
-                _isMineExploded = false
-                mainActivity.isResetMineExplorer = false
+                isMineExploded = false
+                mainActivity.isReEnable = false
             }
         }
 
         // if mine not exploded  touch event, otherwise ignore it
-        if (!_isMineExploded) {
+        if (!isMineExploded) {
 
             // see what event we have and take appropriate action
             if (event!!.actionMasked == MotionEvent.ACTION_DOWN
-                || event!!.actionMasked == MotionEvent.ACTION_POINTER_DOWN
+                || event.actionMasked == MotionEvent.ACTION_POINTER_DOWN
             ) {
                 // either we have a single touch (ACTION_DOWN) or an additional touch (ACTION_POINTER_DOWN) either way
                 // add a new pointer and keep track of the id of this pointer
-                val index = event.actionIndex
-                val id = event.getPointerId(index)
-
                 _touchPoint.x = event.x
                 _touchPoint.y = event.y
 
@@ -279,5 +301,81 @@ class CustomView(context: Context?) : View(context) {
         } else {
             setMeasuredDimension(width, width)
         }
+    }
+
+    // set in cell the number the mines around
+    private fun setCellNumMinesAround() {
+        for (i in 0 until cells.count()) {
+            // the first left column
+            if (i % 10 == 0) {
+                // the first row
+                if (i < 10) {
+                    cells[i].numOfMinesAround =
+                        boolToInt(cells[i + 1].isMineInCell) + boolToInt(cells[i + 10].isMineInCell) + boolToInt(
+                            cells[i + 11].isMineInCell
+                        )
+                }
+                // the last row
+                else if (i > 89) {
+                    cells[i].numOfMinesAround =
+                        boolToInt(cells[i + 1].isMineInCell) + boolToInt(cells[i - 10].isMineInCell) + boolToInt(
+                            cells[i - 9].isMineInCell
+                        )
+                }
+                // rows between
+                else {
+                    cells[i].numOfMinesAround = boolToInt(cells[i + 1].isMineInCell) + boolToInt(cells[i + 10].isMineInCell) + boolToInt(cells[i + 11].isMineInCell)
+                    cells[i].numOfMinesAround = cells[i].numOfMinesAround  + boolToInt(cells[i - 10].isMineInCell) + boolToInt(cells[i - 9].isMineInCell)
+                }
+            }
+            // the last right column
+            else if (i % 10 == 9) {
+                // the first row
+                if (i < 10) {
+                    cells[i].numOfMinesAround =
+                        boolToInt(cells[i - 1].isMineInCell) + boolToInt(cells[i + 10].isMineInCell) + boolToInt(
+                            cells[i + 9].isMineInCell
+                        )
+                }
+                // the last row
+                else if (i > 89) {
+                    cells[i].numOfMinesAround =
+                        boolToInt(cells[i - 1].isMineInCell) + boolToInt(cells[i - 10].isMineInCell) + boolToInt(
+                            cells[i - 11].isMineInCell
+                        )
+                }
+                // rows between
+                else {
+                    cells[i].numOfMinesAround = boolToInt(cells[i - 1].isMineInCell) + boolToInt(cells[i + 10].isMineInCell) + boolToInt(cells[i + 9].isMineInCell)
+                    cells[i].numOfMinesAround = cells[i].numOfMinesAround  + boolToInt(cells[i - 10].isMineInCell) + boolToInt(cells[i - 11].isMineInCell)
+                }
+            }
+            // the rest of columns
+            else {
+                // the first row
+                if (i < 10) {
+                    cells[i].numOfMinesAround = boolToInt(cells[i + 1].isMineInCell) + boolToInt(cells[i + 10].isMineInCell) + boolToInt(cells[i + 11].isMineInCell)
+                    cells[i].numOfMinesAround = cells[i].numOfMinesAround + boolToInt(cells[i - 1].isMineInCell)  + boolToInt(cells[i + 9].isMineInCell)
+                }
+                // the last row
+                else if (i > 89) {
+                    cells[i].numOfMinesAround = boolToInt(cells[i + 1].isMineInCell) + boolToInt(cells[i - 10].isMineInCell) + boolToInt(cells[i - 9].isMineInCell)
+                    cells[i].numOfMinesAround = cells[i].numOfMinesAround + boolToInt(cells[i - 1].isMineInCell)  + boolToInt(cells[i - 11].isMineInCell)
+                }
+                // rows between
+                else {
+                    cells[i].numOfMinesAround =
+                        boolToInt(cells[i + 1].isMineInCell) + boolToInt(cells[i + 10].isMineInCell) + boolToInt(cells[i + 11].isMineInCell)
+                    cells[i].numOfMinesAround =  cells[i].numOfMinesAround + boolToInt(cells[i - 10].isMineInCell) + boolToInt(cells[i - 9].isMineInCell)
+                    cells[i].numOfMinesAround =  cells[i].numOfMinesAround + boolToInt(cells[i - 1].isMineInCell) + boolToInt(cells[i + 9].isMineInCell)
+                    cells[i].numOfMinesAround =  cells[i].numOfMinesAround   + boolToInt(cells[i - 11].isMineInCell)
+                }
+            }
+        }
+    }
+
+    // additional fun help to convert boolean to integer
+    private fun boolToInt(b: Boolean): Int {
+        return if (b) 1 else 0
     }
 }

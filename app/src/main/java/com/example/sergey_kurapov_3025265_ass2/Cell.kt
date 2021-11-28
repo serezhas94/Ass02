@@ -5,7 +5,8 @@ import android.R.bool
 
 
 
-class Cell {
+class Cell(id:Int) {
+    val id:Int = id
     var topLeft = Point(0.0f, 0.0f)
     var topRight = Point(0.0f, 0.0f)
     var bottomLeft = Point(0.0f, 0.0f)
@@ -15,6 +16,12 @@ class Cell {
     var isMarked = false
 
     var numOfMinesAround = 0
+
+    fun copyState(otherCell: Cell){
+        isMineInCell = otherCell.isMineInCell
+        isMarked = otherCell.isMarked
+        numOfMinesAround = otherCell.numOfMinesAround
+    }
 
     // check if point belongs to cell
     fun isPointInCell(x: Float, y: Float): Boolean {
